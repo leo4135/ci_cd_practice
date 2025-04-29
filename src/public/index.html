@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test platform for research</title>
+</head>
+
+<body>
+
+    <h1>Здесь стандартный заголовок для исследования</h1>
+    <input class="xss" style="margin-bottom: 20px;" placeholder="Уязвимое поле">
+    <button onclick="sendComment(0)">Добавить</button>
+
+    <input class="noxss" style="margin-bottom: 20px;" placeholder="Безопасное поле">
+    <button onclick="sendComment(1)">Добавить</button>
+
+    <div id="comments"></div>
+
+    <div>
+        <span>
+            DOM-based XSS
+            Пример для исследования: #&lt;div onmouseover="alert('XSS')">alert('XSS')&lt;/div>
+            <div id="content">Контейнер для встраивания</div>
+        </span>
+    </div>
+
+    <div>
+        <span>
+            DOM-based XSS
+            Пример для исследования: #&lt;div onmouseover="alert('XSS')">alert('XSS')&lt;/div>
+            <div id="content_safe">Безопасный Контейнер для встраивания</div>
+        </span>
+    </div>
+
+
+    <script>
+// eval(atob('YWxlcnQoJ1hTUycp')); // Base64-кодированная строка "alert('XSS')"
+
+        // not safe
+        const hash = window.location.hash.substring(1);
+        const decodedHash = decodeURIComponent(hash);
+        document.getElementById('content').innerHTML = decodedHash;
+
+        const hashSafety = window.location.hash.substring(1);
+        const decodedHashSafety = decodeURIComponent(hashSafety);
+        document.getElementById('content_safe').textContent = decodedHashSafety;
+
+        const blockForComments = document.getElementById('comments');
+
+        const getAnswer = async () => {
+            blockForComments.innerHTML = '';
+            const response = await fetch('http://localhost:8000/get_comments/', {
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                method: "GET"
+            });
+            const data = await response.json();
+            console.log(data);
+            data.forEach(element => blockForComments.innerHTML += `<div>${element.comment}</div>`);
+        }
+
+        getAnswer();
+
+
+        const sendComment = async (validation) => {
+            if (!validation) {
+                const input = document.querySelector('.xss').value;
+                if (input) {
+                    const req = fetch('http://localhost:8000/comment', {
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        method: 'POST',
+                        body: JSON.stringify({ text: input })
+                    });
+
+                    document.querySelector('.xss').value = '';
+
+                    const delay = (sec) => new Promise((resolve, rej) => {
+                        setTimeout(() => {
+                            resolve();
+                        }, sec);
+                    });
+
+                    await delay(100);
+                    getAnswer();
+                } else {
+                    alert('Комментарий должен быть хотя бы с одним символом');
+                }
+            } else {
+                const input = document.querySelector('.noxss').value;
+                if (input) {
+                    const req = fetch('http://localhost:8000/comment_validation', {
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        method: 'POST',
+                        body: JSON.stringify({ text: input })
+                    });
+
+                    document.querySelector('.noxss').value = '';
+
+                    const delay = (sec) => new Promise((resolve, rej) => {
+                        setTimeout(() => {
+                            resolve();
+                        }, sec);
+                    });
+
+                    await delay(100);
+                    getAnswer();
+                } else {
+                    alert('Комментарий должен быть хотя бы с одним символом');
+                }
+            }
+        }
+        
+    </script>
+
+</body>
+
+</html>

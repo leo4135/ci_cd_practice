@@ -1,0 +1,28 @@
+version: "3.9"
+services:
+  app:
+    build:
+      context: .
+    container_name: express_app
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_HOST=db
+      - DB_USER=root
+      - DB_PASSWORD=pass
+      - DB_NAME=research
+    depends_on:
+      - db
+
+  db:
+    image: mysql:8.0
+    container_name: mysql_db_2
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: pass
+      MYSQL_DATABASE: research
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./alter_user.sql:/docker-entrypoint-initdb.d/alter_user.sql  
+
